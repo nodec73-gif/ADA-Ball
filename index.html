@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Council — Oracle Prototype</title>
+
+<style>
+/* ===== BASE ===== */
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.background {
+  position: fixed;
+  inset: 0;
+  background: url('oracle-background.png') center / cover no-repeat;
+  z-index: 0;
+}
+
+.background::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(0,0,0,0.1), rgba(0,0,0,0.7));
+}
+
+/* ===== LAYOUT ===== */
+.layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  max-width: 1100px;
+  width: 100%;
+  padding: 40px;
+}
+
+.controls {
+  background: rgba(2, 6, 23, 0.9);
+  border-radius: 24px;
+  padding: 32px;
+}
+
+input, select, button {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: none;
+  margin-bottom: 16px;
+  font-size: 1rem;
+}
+
+button {
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.free-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #c7d2fe;
+}
+
+.disclaimer {
+  margin-top: 20px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  opacity: 0.6;
+}
+
+/* ===== ORACLE BALL ===== */
+.oracle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ball-container {
+  position: relative;
+  width: 420px;
+}
+
+.ball-container::before {
+  content: '';
+  position: absolute;
+  inset: -40px;
+  background: radial-gradient(circle, rgba(168,85,247,0.15), transparent 70%);
+  animation: auraMove 10s linear infinite;
+  z-index: 0;
+}
+
+@keyframes auraMove {
+  0% { transform: translate(0,0); }
+  50% { transform: translate(20px, 10px); }
+  100% { transform: translate(0,0); }
+}
+
+.ball-image { width: 100%; display: block; position: relative; z-index: 1; }
+
+.ball-container.deliberating { animation: pulse 2.5s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.02); } }
+
+.ball-answer {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ball-answer.visible { opacity: 1; animation: reveal 0.9s ease-out forwards; }
+@keyframes reveal {
+  from { transform: translate(-50%,-50%) scale(0.7); filter: blur(6px); }
+  to { transform: translate(-50%,-50%) scale(1); filter: blur(0); }
+}
+
+.ball-answer.yes { color: #22c55e; font-size: 3.2rem; }
+.ball-answer.no  { color: #ef4444; font-size: 3.2rem; }
+.ball-answer.maybe { color: #a855f7; font-size: 2.6rem; animation: flicker 1.2s infinite alternate; }
+.ball-answer.muted { color: #94a3b8; opacity: 0.6; }
+@keyframes flicker { from {opacity:0.6;} to {opacity:1;} }
+
+.candle-flame {
+  position: absolute;
+  width: 12px; height: 24px;
+  background: radial-gradient(ellipse, rgba(255,200,50,0.9), rgba(255,150,0,0.2));
+  border-radius: 50%;
+  animation: flame 1s infinite alternate;
+  z-index: 2;
+}
+@keyframes flame { from { transform: translateY(0) scaleY(1); } to { transform: translateY(-4px) scaleY(1.1); } }
+
+.wallet-btn {
+  margin-top: 20px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #c7d2fe;
+  border-radius: 999px;
+  padding: 10px 22px;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+
+<body>
+<div class="background"></div>
+
+<div class="layout">
+  <!-- LEFT -->
+  <div class="controls">
+    <h1>🎱 The Cardano ADA ball</h1>
+    <input id="question" placeholder="Ask a yes / no question…" />
+    <select id="donation">
+      <option value="1">1 ADA — The veil is thick</option>
+      <option value="5">5 ADA — The Council listens</option>
+      <option value="15">15 ADA — The veil thins</option>
+      <option value="50">50 ADA — The veil is gone</option>
+    </select>
+    <button onclick="consultCouncil()">🕯️Consult the Council🕯️</button>
+    <button onclick="consultFree()" class="free-btn">Consult Without Offering</button>
+    <div class="disclaimer">
+      <p>⚠️ This oracle is for entertainment purposes only. The Council offers no financial, legal, or life advice. All outcomes are symbolic and random.</p>
+    </div>
+    <div id="status"></div>
+    <button id="connectWallet" class="wallet-btn">Connect Cardano Wallet</button>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="oracle">
+    <div class="ball-container" id="ball">
+      <img src="oracle-ball.png" class="ball-image" />
+      <div id="ballAnswer" class="ball-answer">YES</div>
+      <div class="candle-flame" style="top:30%; left:5%"></div>
+      <div class="candle-flame" style="top:34%; left:89.5%"></div>
+      <div class="candle-flame" style="top:37%; left:12%"></div>
+      <div class="candle-flame" style="top:41%; left:80.5%"></div>
+      <div class="candle-flame" style="top:64%; left:92.5%"></div>
+    </div>
+  </div>
+
+  <div id="ritualStatus" style="margin-top:12px;text-align:center;font-size:0.85rem;letter-spacing:0.12em;color:#a855f7;opacity:0.85;"></div>
+</div>
+
+<audio id="deliberateSound" src="deliberate.mp3"></audio>
+<audio id="revealSound" src="reveal.mp3"></audio>
+
+<script>
+let walletConnected = false;
+let ritualMode = false;
+
+const question = document.getElementById('question');
+const donation = document.getElementById('donation');
+const status = document.getElementById('status');
+const ball = document.getElementById('ball');
+const ballAnswer = document.getElementById('ballAnswer');
+const ritualStatus = document.getElementById('ritualStatus');
+const connectWalletBtn = document.getElementById('connectWallet');
+
+const deliberateSound = document.getElementById('deliberateSound');
+const revealSound = document.getElementById('revealSound');
+
+function getMaybeChance(ada) {
+  if (ada <= 2) return 0.4;
+  if (ada <= 10) return 0.25;
+  if (ada <= 25) return 0.1;
+  return 0;
+}
+
+// ===== RITUAL MODE TOGGLE =====
+document.addEventListener('keydown', (e) => {
+  if (e.repeat) return;
+  if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'r') {
+    ritualMode = !ritualMode;
+    ritualStatus.textContent = ritualMode ? '🜏 MATHEMATICA ACTIVE — THE VEIL IS LIFTED' : '⟡ Ritual Mode OFF';
+    setTimeout(() => { if (!ritualMode) ritualStatus.textContent = ''; }, 2000);
+    console.log(`Ritual Mode: ${ritualMode}`);
+  }
+});
+
+// ===== CONSULT FUNCTIONS =====
+function consultCouncil() {
+  if (!walletConnected && !ritualMode) {
+    status.textContent = '🔒 Connect wallet or activate Ritual Mode to consult the Council.';
+    return;
+  }
+  if (!question.value.trim()) {
+    status.textContent = 'The Council requires a question.';
+    return;
+  }
+
+  const ada = ritualMode ? 50 : Number(donation.value);
+  status.textContent = ritualMode ? 'The Council bends to unseen forces…' : 'The Council deliberates…';
+  ball.classList.add('deliberating');
+  ballAnswer.className = 'ball-answer';
+  deliberateSound?.play().catch(()=>{});
+
+  const delay = ritualMode ? 1200 : ada <= 2 ? 600 : ada <= 10 ? 1400 : ada <= 25 ? 2200 : 3200;
+
+  setTimeout(() => {
+    deliberateSound?.pause();
+    revealSound?.play().catch(()=>{});
+    const chance = getMaybeChance(ada);
+    const result = Math.random() < chance ? 'MAYBE' : Math.random() < 0.5 ? 'YES' : 'NO';
+    ballAnswer.textContent = result;
+    ballAnswer.className = `ball-answer ${result.toLowerCase()} visible`;
+    status.textContent = 'The Council has spoken.';
+    ball.classList.remove('deliberating');
+  }, delay);
+}
+
+function consultFree() {
+  if (!question.value.trim()) {
+    status.textContent = 'The Council ignores silence.';
+    return;
+  }
+  status.textContent = 'The Council ignores you and your question.';
+  ballAnswer.textContent = ['YES','NO','MAYBE'][Math.floor(Math.random()*3)];
+  ballAnswer.className = 'ball-answer muted visible';
+}
+
+// ===== WALLET SIMULATION =====
+connectWalletBtn.onclick = () => {
+  walletConnected = true;
+  status.textContent = '🔗 Wallet connected (simulation mode)';
+  connectWalletBtn.textContent = 'Wallet Connected ✓';
+  connectWalletBtn.disabled = true;
+};
+</script>
+
+</body>
+</html>
