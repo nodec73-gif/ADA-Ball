@@ -153,7 +153,46 @@ button {
   cursor: pointer;
 }
 
-@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+
+  body {
+    align-items: flex-start;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 20px;
+    width: 100%;
+  }
+
+  .oracle {
+    order: -1;   /* puts the ball above controls */
+    margin-bottom: 10px;
+  }
+
+  .controls {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .ball-container {
+    width: min(90vw, 420px);
+  }
+
+  .ball-container::before {
+    inset: -20px;
+  }
+
+  .ball-answer {
+    font-size: clamp(1.6rem, 6vw, 3.2rem);
+  }
+
+  .ball-answer.maybe {
+    font-size: clamp(1.4rem, 5vw, 2.6rem);
+  }
+}
+
 </style>
 </head>
 
